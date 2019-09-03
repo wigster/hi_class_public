@@ -10,3 +10,7 @@ python/classy.c
 python/*.pyc
 python/build/i
 ini_files
+.vscode/
+*.pyc
+python/build/
+RealSpaceInterface/cache/
