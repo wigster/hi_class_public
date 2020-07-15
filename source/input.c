@@ -1629,9 +1629,32 @@ if (strcmp(string1,"nkgb") == 0 || strcmp(string1,"n-kgb") == 0 || strcmp(string
   class_test(pba->parameters_smg[2]<0.,errmsg,"In n-KGB, Rshift0>=0, or ICs for background can't be set.");
 }
 
-      class_test(flag2==_FALSE_,
+if (strcmp(string1,"massivekgb") == 0 || strcmp(string1,"massive-kgb") == 0 || strcmp(string1,"massive-KGB") == 0 || strcmp(string1,"massiveKGB") == 0) {
+	//TODO: update this with mass
+  // This is self-accelerating KGB with K=-X and G(X)=1/n g^(2n-1)/2 * X^n
+  pba->gravity_model_smg = massivekgb;
+	pba->field_evolution_smg = _TRUE_;
+  if (has_tuning_index_smg == _FALSE_ && pba->Omega_smg_debug == 0){
+	  pba->tuning_index_smg = 0; //use g for default tuning
+	}
+	class_test(has_dxdy_guess_smg == _TRUE_ && has_tuning_index_smg == _FALSE_,
 		 errmsg,
-		 "could not identify gravity_theory value, check that it is one of 'propto_omega', 'propto_scale', 'constant_alphas', 'eft_alphas_power_law', 'eft_gammas_power_law', 'eft_gammas_exponential', 'brans_dicke', 'galileon', 'nKGB', 'quintessence_monomial', 'quintessence_tracker', 'alpha_attractor_canonical' ...");
+		 "massiveKGB: you gave dxdy_guess_smg but no tuning_index_smg. You need to give both if you want to tune the model yourself");
+	if(has_dxdy_guess_smg == _FALSE_){
+    pba->tuning_dxdy_guess_smg = -0.5;
+  }
+  flag2=_TRUE_;
+
+	pba->parameters_size_smg = 4; // g, n, xi0 == rho_DE_0(shift charge)/rho_DE_0(total), m
+	class_read_list_of_doubles("parameters_smg",pba->parameters_smg,pba->parameters_size_smg);
+	class_test(pba->parameters_smg[1]<=0.5,errmsg,"In n-KGB G(X)=X^n n>1/2 for acceleration. Note that limit n->1/2 is singular and models become badly behaved for n<0.7");
+  class_test(pba->parameters_smg[2]>=1.,errmsg,"In n-KGB, Rshift0<1 for positive energy density today.");
+  class_test(pba->parameters_smg[2]<0.,errmsg,"In n-KGB, Rshift0>=0, or ICs for background can't be set.");
+  }
+
+  class_test(flag2==_FALSE_,
+		 errmsg,
+		 "could not identify gravity_theory value, check that it is one of 'propto_omega', 'propto_scale', 'constant_alphas', 'eft_alphas_power_law', 'eft_gammas_power_law', 'eft_gammas_exponential', 'brans_dicke', 'galileon', 'nKGB', 'massiveKGB','quintessence_monomial', 'quintessence_tracker', 'alpha_attractor_canonical' ...");
 
     }// end of loop over models
 

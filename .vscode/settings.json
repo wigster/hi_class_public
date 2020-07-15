@@ -3,5 +3,6 @@
         "background.h": "c",
         "common.h": "c",
         "stdio.h": "c"
-    }
+    },
+    "python.pythonPath": "/usr/bin/python"
 }

@@ -2743,6 +2743,65 @@ int background_initial_conditions(
       }
       break;
 
+
+    case massivekgb:
+      {
+        //TODO: right now this is just nKGB. Rewrite
+      /* Action is
+
+        -X + 1/n * g^[(2n-1)/2] Lambda (X/Lambda^4)^n box(phi)
+
+        with Lambda^(4n-1)=MPl^(2n-1)*H0^2n
+
+        g was picked like this so that it approx. remains g*Omega_smg0 ~ O(1) for all n
+
+        Since the energy density in KGB must be >0, then -inf<xi0<1 and the combination xicomb>0
+        The alpha descrition breaks down for phidot=0, so we assume this is never crossed
+
+        This all implies that phidot on the attractor has the same sign as g, and therefore
+        phi dot always has the same sign as g.
+
+        Rshift0 = (phidot0*J0)/rho_smg0, i.e. fraction of the DE energy-density today in the shift-charge as opposed to the vacuum part
+
+      */
+
+        double g = pba->parameters_smg[0];
+        double n = pba->parameters_smg[1];
+        double Rshift0 = pba->parameters_smg[2];
+
+        double H = sqrt(rho_rad); //TODO: for low n -> need to solve tracker + Constraint simultaneously. Increasing H (e.g. double H = 10*sqrt(rho_rad);) works for n~0.65.
+        double H0 = pba->H0;
+
+        double signg = copysign(1.,g);
+        g=fabs(g);
+        double Rshiftcomb = (2.-Rshift0)/(2.*(1.-Rshift0));
+
+        double phidot0=0., phidot_attr_init= 0., charge_init=0., phidot_init=0.;
+
+        phidot0 = signg * sqrt(2./g)*H0 * pow(Rshiftcomb/(3*sqrt(2)),1./(2.*n-1.));             // value of phidot today, if xi0=0, then this is attractor
+        phidot_attr_init = signg * sqrt(2./g)*H0 * pow(H0/(3.*sqrt(2.)*H),1./(2.*n-1.));    // value of phidot on attractor at initial time
+        charge_init  = phidot0*Rshift0/(2*(1-Rshift0))*pow(a,-3);    // implied value of required shift charge initially
+
+        if(fabs(charge_init/phidot_attr_init)<1.){
+          /* test if initial shift charge is large c.f. the on-attractor phidot. If no, we are nearly on attractor
+          at initial time anyway, so just correct the attractor solution slightly
+          if yes, then we are off-attractor and then we have approximate analytic solution in limit of
+          n_init >> phidot. For the range n_init ~ phidot just use the solution for large shift charge.
+          by the late universe, this will be an irrelevant error. */
+
+          phidot_init = phidot_attr_init + charge_init/(2.*n-1.);
+        }
+        else{
+          phidot_init = signg * pow( fabs(charge_init) * pow(fabs(phidot_attr_init),2.*n-1.),1./(2.*n));
+        }
+
+        pvecback_integration[pba->index_bi_phi_smg] = 0.0; //shift-symmetric, i.e. this is irrelevant
+        pvecback_integration[pba->index_bi_phi_prime_smg] = a*phidot_init ;
+      }
+      break;
+
+
+
       case propto_omega:
 	pvecback_integration[pba->index_bi_delta_M_pl_smg] = pba->parameters_2_smg[4]-1.;
 	break;
@@ -3456,6 +3515,30 @@ int background_gravity_functions(
 
     }
 
+    else if(pba->gravity_model_smg == massivekgb){
+      //TODO: Rewrite below to make it massive KGB  
+      /* Action is
+
+        -X + 1/n * g^[(2n-1)/2] Lambda (X/Lambda^4)^n box(phi)
+
+        g was picked like this so that it approx. remains g*Omega_smg0 ~ O(1) for all n
+        Note that for n=1/4 the Lambda mass scales cancels out, so we set it to 1.
+      */
+
+      double g = pba->parameters_smg[0];
+      double npow = pba->parameters_smg[1];
+      double ngpow = copysign(1.,g)*pow(fabs(g),(2.*npow-1.)/2.)/npow;
+      double H0=pba->H0;
+
+      G2    = -X;
+      G2_X  = -1.;
+
+      // G3 = 1/n g^[(2n-1)/2] Lambda (X/Lambda^4)^n
+
+      G3_X = npow*ngpow*pow(X,npow-1)/pow(H0,2*npow);
+      G3_XX = npow*(npow-1.)*ngpow*pow(X,npow-2)/pow(H0,2*npow);
+
+    }
 
     //TODO: Write the Bellini-Sawicki functions and other information to pvecback
 
@@ -3896,7 +3979,12 @@ int background_gravity_parameters(
      printf(" -> g = %g, n = %g, phi_ini = 0.0, smg density fraction from shift charge term = %g. \n",
 	    pba->parameters_smg[0],pba->parameters_smg[1],pba->parameters_smg[2]);
      break;
-
+ 
+   case massivekgb:
+     printf("Modified gravity: Kinetic Gravity Braiding with K=-X + m^2 phi^2/2 and G=1/n g^(2n-1)/2 * X^n with parameters and mass: \n");
+     printf(" -> g = %g, n = %g, phi_ini = 0.0, smg density fraction from shift charge term = %g and m = %g. \n",
+	    pba->parameters_smg[0],pba->parameters_smg[1],pba->parameters_smg[2],pba->parameters_smg[3]);
+     break;
    case propto_omega:
      printf("Modified gravity: propto_omega with parameters: \n");
      printf(" -> c_K = %g, c_B = %g, c_M = %g, c_T = %g, M_*^2_init = %g \n",
